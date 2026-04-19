@@ -309,15 +309,75 @@
     });
     
     // Upload CV handler
-    function handleUploadCV() {
+    async function handleUploadCV() {
+    const { value: file } = await Swal.fire({
+        title: 'Upload CV',
+        text: 'Pilih file CV Anda (Format: PDF)',
+        icon: 'info',
+        input: 'file',
+        inputAttributes: {
+            'accept': 'application/pdf',
+            'aria-label': 'Upload your CV in PDF format'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Upload Sekarang',
+        cancelButtonText: 'Batal',
+        background: '#07111f',
+        color: '#fff',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        // Validasi agar file tidak kosong
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Anda harus memilih file terlebih dahulu!';
+            }
+        }
+    });
+
+    if (file) {
+        // Tampilkan loading saat proses upload
         Swal.fire({
-            title: 'Upload CV',
-            text: 'Fitur upload CV akan segera tersedia',
-            icon: 'info',
-            background: '#07111f',
-            color: '#fff'
+            title: 'Sedang mengunggah...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
+
+        // Menyiapkan data untuk dikirim ke server
+        const formData = new FormData();
+        formData.append('cv_file', file);
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content); // CSRF untuk Laravel
+
+        try {
+            // Ganti '/upload-cv' dengan URL route Laravel Anda
+            const response = await fetch('/upload-cv', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: 'CV Anda berhasil diunggah.',
+                    icon: 'success',
+                    background: '#07111f',
+                    color: '#fff'
+                });
+            } else {
+                throw new Error('Gagal mengunggah file.');
+            }
+        } catch (error) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Terjadi kesalahan saat mengunggah file.',
+                icon: 'error',
+                background: '#07111f',
+                color: '#fff'
+            });
+        }
     }
+}
 </script>
 
 </body>
