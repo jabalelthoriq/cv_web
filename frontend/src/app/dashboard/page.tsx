@@ -130,7 +130,7 @@ function StatCard({ icon, label, value, sub, color, sparkline }: StatCardProps) 
 // ─────────────────────────────────────────────────────────────
 //  WELCOME BANNER
 // ─────────────────────────────────────────────────────────────
-function WelcomeBanner() {
+function WelcomeBanner({ data }: any) {
   return (
     <div
       className="relative rounded-2xl overflow-hidden mb-4"
@@ -180,7 +180,7 @@ function WelcomeBanner() {
               className="text-2xl font-black text-white leading-tight mb-1"
               style={{ fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.6px" }}
             >
-              Andi Ramadhan
+              {data?.user?.name ?? "User"}
               <span className="ml-2 text-2xl">👋</span>
             </h1>
 
@@ -622,33 +622,41 @@ function ScoreRing({ score, label, color }: { score: number; label: string; colo
 // ─────────────────────────────────────────────────────────────
 //  DASHBOARD HOME
 // ─────────────────────────────────────────────────────────────
-function DashboardHome({ onNavigate }: { onNavigate: (id: string) => void }) {
+function DashboardHome({ onNavigate, data }: any) {
   const stats: StatCardProps[] = [
-    {
-      icon: "📊", label: "Skor CV", value: "73",
-      sub: "↑ 12 poin", color: T.cyan,
-      sparkline: [40, 45, 42, 55, 58, 61, 63, 68, 73],
-    },
-    {
-      icon: "💼", label: "Job Match", value: "5",
-      sub: "Match baru", color: T.blue,
-      sparkline: [1, 2, 2, 3, 3, 4, 4, 5, 5],
-    },
-    {
-      icon: "🎙️", label: "Sesi Interview", value: "3",
-      sub: "Avg 87/100", color: T.violet,
-      sparkline: [60, 72, 70, 78, 82, 85, 87, 88, 87],
-    },
-    {
-      icon: "✉️", label: "Lamaran Aktif", value: "2",
-      sub: "1 menunggu", color: T.emerald,
-      sparkline: [0, 0, 1, 1, 1, 2, 2, 2, 2],
-    },
-  ];
+  {
+    icon: "📊",
+    label: "Skor CV",
+    value: String(data.cv_analysis.score),
+    sub: `Δ ${data.cv_analysis.delta}`,
+    color: T.cyan,
+  },
+  {
+    icon: "💼",
+    label: "Job Match",
+    value: String(data.jobs.length),
+    sub: "Rekomendasi",
+    color: T.blue,
+  },
+  {
+    icon: "🎙️",
+    label: "Sesi Interview",
+    value: String(data.interview.total_sessions),
+    sub: `Avg ${data.interview.average_score}`,
+    color: T.violet,
+  },
+  {
+    icon: "✉️",
+    label: "Lamaran",
+    value: String(data.applications.total_active),
+    sub: "Aktif",
+    color: T.emerald,
+  },
+];
 
   return (
     <div className="space-y-4">
-      <WelcomeBanner />
+      <WelcomeBanner data={data} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -677,12 +685,28 @@ function DashboardHome({ onNavigate }: { onNavigate: (id: string) => void }) {
 
           {/* Interview scores */}
           <Panel title="Skor Interview Terakhir" accent={T.violet}>
-            <div className="flex items-center justify-around py-1">
-              <ScoreRing score={87} label="Kepercayaan Diri"  color={T.violet} />
-              <ScoreRing score={92} label="Pengetahuan Teknis" color={T.cyan} />
-              <ScoreRing score={78} label="Komunikasi"        color={T.amber} />
-              <ScoreRing score={85} label="Problem Solving"   color={T.emerald} />
-            </div>
+           <div className="flex items-center justify-around py-1">
+  <ScoreRing 
+    score={data?.interview?.breakdown?.confidence ?? 0} 
+    label="Kepercayaan Diri" 
+    color={T.violet} 
+  />
+  <ScoreRing 
+    score={data?.interview?.breakdown?.technical ?? 0} 
+    label="Teknis" 
+    color={T.cyan} 
+  />
+  <ScoreRing 
+    score={data?.interview?.breakdown?.communication ?? 0} 
+    label="Komunikasi" 
+    color={T.amber} 
+  />
+  <ScoreRing 
+    score={data?.interview?.breakdown?.problem_solving ?? 0} 
+    label="Problem Solving" 
+    color={T.emerald} 
+  />
+</div>
           </Panel>
         </div>
 
@@ -696,12 +720,16 @@ function DashboardHome({ onNavigate }: { onNavigate: (id: string) => void }) {
             onActionClick={() => onNavigate("jobs")}
           >
             <div className="space-y-2">
-              {[
-                { company: "Tokopedia",  role: "Senior Frontend Engineer", match: 94, tags: ["React", "Remote"], logo: "🛒" },
-                { company: "Gojek",      role: "Product Designer",          match: 88, tags: ["Figma", "B2C"],   logo: "🛵" },
-                { company: "Traveloka",  role: "Full-Stack Developer",       match: 81, tags: ["Node.js","Hybrid"],logo:"✈️" },
-                { company: "Shopee",     role: "UX Engineer",                match: 76, tags: ["Vue", "Hybrid"],  logo: "🛍️" },
-              ].map((j) => <JobCard key={j.role} {...j} />)}
+              {data.jobs.map((j: any) => (
+  <JobCard
+    key={j.job_title}
+    company={j.company}
+    role={j.job_title}
+    match={j.match_score}
+    tags={j.tags}
+    logo="💼"
+  />
+))}
             </div>
           </Panel>
 
@@ -712,14 +740,17 @@ function DashboardHome({ onNavigate }: { onNavigate: (id: string) => void }) {
             accent={T.cyan}
           >
             <div className="-mx-1">
-              {[
-                { icon: "📄", title: "CV diperbarui",         sub: "Skor naik 12 poin",               time: "5m", color: T.cyan },
-                { icon: "💼", title: "Match baru ditemukan",  sub: "Senior Frontend — Tokopedia",      time: "1j", color: T.blue },
-                { icon: "🎙️", title: "Sesi interview selesai",sub: "Skor 87/100",                      time: "3j", color: T.violet },
-                { icon: "✉️", title: "Undangan interview",    sub: "Gojek — Product Designer",         time: "1h", color: T.emerald },
-                { icon: "📊", title: "Laporan ATS tersedia",  sub: "CV lolos 8/10 filter",             time: "2h", color: T.amber },
-              ].map((a) => <ActivityItem key={a.title} {...a} />)}
-            </div>
+  {data?.activities?.map((a: any) => (
+    <ActivityItem
+      key={a.message}
+      icon="📌"
+      title={a.message}
+      sub={a.type}
+      time={new Date(a.time).toLocaleTimeString()}
+      color={T.cyan}
+    />
+  ))}
+</div>
           </Panel>
 
           {/* Quick Actions */}
@@ -731,6 +762,7 @@ function DashboardHome({ onNavigate }: { onNavigate: (id: string) => void }) {
     </div>
   );
 }
+
 
 // ─────────────────────────────────────────────────────────────
 //  SIDEBAR
@@ -924,7 +956,7 @@ function Sidebar({
             {expanded && (
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-white/85 leading-none truncate">
-                  Andi Ramadhan
+                  WELCOME
                 </p>
                 <span
                   className="inline-block mt-1 text-[9px] px-1.5 py-px rounded font-bold"
@@ -1057,6 +1089,29 @@ export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/dashboard");
+        const json = await res.json();
+        setData(json);
+      } catch (err) {
+        console.error("Error fetch dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  if (loading) {
+    return <div className="text-white p-10">Loading dashboard...</div>;
+  }
+
 
   // ✅ Baca dari query parameter, default ke "dashboard"
   const view = searchParams.get("view") || "dashboard";
@@ -1082,7 +1137,7 @@ export default function DashboardPage() {
   const viewMap: Record<string, { title: string; content: React.ReactNode }> = {
     dashboard: { 
       title: "Dashboard", 
-      content: <DashboardHome onNavigate={handleNavigate} /> 
+      content: <DashboardHome onNavigate={handleNavigate} data={data} />
     },
     cv: { 
       title: "Analisis CV", 

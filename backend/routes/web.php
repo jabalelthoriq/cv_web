@@ -1,19 +1,32 @@
 <?php
 
-use App\Http\Controllers\PostController;
-use App\Http\Controllers\authController;
-use App\Http\Controllers\Api\Auth;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 
-// Route::post('/login', [authController::class, 'login']);
+// Landing Page
+Route::get('/', function () {
+    return view('landingpage');
+})->name('home');
 
-Route::apiResource('posts', PostController::class);
+// Login Routes
+Route::get('/login', function () {
+    return view('login');
+})->name('login');
 
-// PUBLIC
-Route::post('/register', [Auth::class, 'register']);
-Route::post('/login', [Auth::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 
-// PROTECTED
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/me', [Auth::class, 'me']);
-    Route::post('/logout', [Auth::class, 'logout']);
+// Register Routes
+Route::get('/register', function () {
+    return view('register');
+})->name('register');
+
+Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
+
+Route::middleware(['auth'])->group(function () {
+    // Gunakan DashboardController untuk route dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
+// Logout Web
+Route::post('/logout', [AuthController::class, 'logoutWeb'])->name('logout');
+

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\authController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Api\Auth;
 
 // Route::post('/login', [authController::class, 'login']);
@@ -17,3 +18,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [Auth::class, 'me']);
     Route::post('/logout', [Auth::class, 'logout']);
 });
+
+// DASHBOAARD   
+Route::middleware('auth:sanctum')->get('/dashboard', [DashboardController::class, 'index']);
