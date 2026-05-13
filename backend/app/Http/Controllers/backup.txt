@@ -1,0 +1,359 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Cv;
+use Midtrans\Config;
+use Midtrans\Snap;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\URL;
+use App\Models\JobRecommendation;
+use App\Models\Payment;
+class PaymentController extends Controller
+{
+   public function getScore($id)
+{
+    $cv = Cv::findOrFail($id);
+
+    return response()->json([
+        'score' => $cv->score,
+        'status' => $cv->analysis['status'] ?? 'Processing'
+    ]);
+}
+public function subscribe(Request $request)
+{
+    try {
+        \Midtrans\Config::$serverKey = config('midtrans.server_key');
+        \Midtrans\Config::$isProduction = false;
+        \Midtrans\Config::$isSanitized = true;
+        \Midtrans\Config::$is3ds = true;
+
+        $plan = $request->plan;
+
+        $prices = [
+            'plus' => 2000,
+            'pro'  => 5000,
+        ];
+
+        if (!isset($prices[$plan])) {
+            return response()->json([
+                'message' => 'Plan tidak valid'
+            ], 400);
+        }
+
+        $orderId = 'SUB-' . strtoupper($plan) . '-' . uniqid();
+
+        $params = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $prices[$plan],
+            ],
+            'customer_details' => [
+                'first_name' => auth()->user()->name ?? 'User',
+                'email' => auth()->user()->email ?? 'user@mail.com',
+            ],
+            'item_details' => [
+                [
+                    'id' => $plan,
+                    'price' => $prices[$plan],
+                    'quantity' => 1,
+                    'name' => strtoupper($plan) . ' PLAN',
+                ]
+            ]
+        ];
+
+        // 🔥 ambil snap token
+        $snapToken = \Midtrans\Snap::getSnapToken($params);
+
+        if (!$snapToken) {
+            throw new \Exception('Snap token gagal dibuat');
+        }
+
+        return response()->json([
+            'snap_token' => $snapToken,
+            'order_id' => $orderId
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('MIDTRANS ERROR: ' . $e->getMessage());
+
+        return response()->json([
+            'message' => 'Gagal membuat pembayaran',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+private function processSubscription($payment)
+{
+    $userId = $payment->user_id;
+
+    if (!$userId) {
+        \Log::error("❌ user_id kosong di payment");
+        return;
+    }
+
+    // 🔥 tentukan durasi
+    $duration = match ($payment->plan) {
+        'plus' => now()->addMonth(),
+        'pro'  => now()->addMonths(3),
+        default => now()->addMonth()
+    };
+
+    // cek subscription aktif
+    $existing = \App\Models\Subscription::where('user_id', $userId)
+        ->where('status', 'active')
+        ->first();
+
+    if ($existing) {
+
+        // 🔥 kalau masih aktif → extend dari expired_at
+        $newExpired = $existing->expired_at > now()
+            ? \Carbon\Carbon::parse($existing->expired_at)->add(
+                $payment->plan === 'pro' ? 3 : 1,
+                'month'
+              )
+            : $duration;
+
+        $existing->update([
+            'plan' => $payment->plan,
+            'expired_at' => $newExpired
+        ]);
+
+    } else {
+
+        \App\Models\Subscription::create([
+            'user_id' => $userId,
+            'plan' => $payment->plan,
+            'started_at' => now(),
+            'expired_at' => $duration,
+            'status' => 'active'
+        ]);
+    }
+
+    $payment->update([
+        'status' => 'paid'
+    ]);
+
+    \Log::info("✅ Subscription aktif user {$userId} => {$payment->plan}");
+}
+
+public function createPayment($cv_id)
+{
+    $cv = Cv::find($cv_id);
+
+    if (!$cv) {
+        return response()->json([
+            'message' => 'CV tidak ditemukan'
+        ], 404);
+    }
+
+    \Midtrans\Config::$serverKey = config('midtrans.server_key');
+    \Midtrans\Config::$isProduction = false;
+    \Midtrans\Config::$isSanitized = true;
+    \Midtrans\Config::$is3ds = true;
+
+    $order_id = 'CV-' . $cv->id . '-' . time();
+
+    // simpan ke DB
+    Payment::create([
+        'order_id' => $order_id,
+        'cv_id' => $cv->id,
+        'type' => 'cv',
+        'status' => 'pending'
+    ]);
+
+    $params = [
+        'transaction_details' => [
+            'order_id' => $order_id,
+            'gross_amount' => 10000
+        ],
+        'customer_details' => [
+            'first_name' => $cv->name ?? 'Customer',
+            'email' => $cv->email ?? 'guest@careersense.com',
+        ],
+        'callbacks' => [
+    'finish' => url('/payment/finish')
+]
+        
+    ];
+
+    $snapToken = \Midtrans\Snap::getSnapToken($params);
+
+    return response()->json([
+        'snap_token' => $snapToken,
+        'order_id' => $order_id
+    ]);
+}
+
+   public function callback(Request $request)
+{
+    \Log::info('=== MIDTRANS CALLBACK MASUK ===');
+    \Log::info($request->all());
+
+    // config midtrans
+    \Midtrans\Config::$serverKey = config('midtrans.server_key');
+
+    $serverKey = config('midtrans.server_key');
+
+    // ambil data
+    $order_id = $request->order_id;
+    $status_code = $request->status_code;
+    $gross_amount = $request->gross_amount;
+    $signature_key = $request->signature_key;
+
+    // validasi signature
+    $expectedSignature = hash(
+        'sha512',
+        $order_id . $status_code . $gross_amount . $serverKey
+    );
+
+    if ($expectedSignature !== $signature_key) {
+        \Log::error('❌ Invalid signature dari Midtrans');
+        return response()->json(['message' => 'Invalid signature'], 403);
+    }
+
+    // ambil status
+    $transactionStatus = $request->transaction_status;
+    $fraudStatus = $request->fraud_status ?? null;
+
+    \Log::info("STATUS: $transactionStatus | FRAUD: $fraudStatus");
+
+    // ambil payment dari DB
+    $payment = Payment::where('order_id', $order_id)->first();
+
+    if (!$payment) {
+        \Log::error("❌ Payment tidak ditemukan: $order_id");
+        return response()->json(['status' => 'not_found'], 404);
+    }
+
+    // 🛡️ idempotent (hindari double update)
+    if ($payment->status === 'paid') {
+        \Log::info("⚠️ Sudah pernah diproses: $order_id");
+        return response()->json(['status' => 'already_processed']);
+    }
+
+    // handle status
+    if (in_array($transactionStatus, ['capture', 'settlement'])) {
+
+    // khusus capture harus cek fraud
+    if ($transactionStatus == 'capture' && $fraudStatus !== 'accept') {
+        \Log::info("❌ Fraud detected: $order_id");
+        return response()->json(['status' => 'fraud']);
+    }
+
+    // 🔥 bedakan type payment
+    if ($payment->type === 'cv') {
+        $this->processSuccess($payment);
+
+    } elseif ($payment->type === 'subscription') {
+        $this->processSubscription($payment);
+    }
+
+} elseif ($transactionStatus == 'pending') {
+
+    \Log::info("⏳ Pending: $order_id");
+
+} elseif ($transactionStatus == 'expire') {
+
+    $payment->update(['status' => 'expired']);
+
+} elseif ($transactionStatus == 'cancel') {
+
+    $payment->update(['status' => 'cancelled']);
+}
+
+    return response()->json(['status' => 'ok']);
+}
+
+private function processSuccess($payment)
+{
+    $cv = Cv::with('jobRecommendations')->find($payment->cv_id);
+
+    if (!$cv) {
+        \Log::error("❌ CV tidak ditemukan: " . $payment->cv_id);
+        return;
+    }
+
+    $job = optional($cv->jobRecommendations->first());
+
+    $payload = encrypt([
+        'payment_id' => $payment->id,
+        'cv_id' => $cv->id,
+        'score' => $cv->score,
+        'analysis' => $cv->analysis,
+        'job_tema' => $cv->job_tema,
+        'job' => [
+            'title' => $job->job_title ?? '-',
+            'company' => $job->company ?? '-',
+            'link' => $job->job_link ?? '#'
+        ],
+        'paid_at' => now()->toDateTimeString()
+    ]);
+
+    $premiumLink = URL::temporarySignedRoute(
+    'premium.result',
+    now()->addHours(6),
+    ['token' => $payload]
+);
+
+    $payment->update([
+        'status' => 'paid',
+        'result_link' => $premiumLink
+    ]);
+
+    \Log::info("✅ Payment SUCCESS: " . $payment->order_id);
+}
+
+    public function getResultLink($order_id)
+    {
+        $payment = Payment::where('order_id', $order_id)->first();
+
+        if (!$payment) {
+            return response()->json([
+                'status' => 'not_found'
+            ], 404);
+        }
+
+        if ($payment->status !== 'paid') {
+            return response()->json([
+                'status' => 'waiting'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'link' => $payment->result_link
+        ]);
+    }
+
+    public function showResult(Request $request)
+{
+    if (!$request->hasValidSignature()) {
+        abort(403);
+    }
+
+    $payload = decrypt($request->token);
+
+    $payment = Payment::with('cv.jobRecommendations')
+        ->findOrFail($payload['payment_id']);
+
+    $cv = $payment->cv;
+    $job = optional($cv->jobRecommendations->first());
+
+    $data = [
+        'score' => $cv->score,
+        'analysis' => $cv->analysis,
+        'job' => [
+            'title' => $job->job_title ?? '-',
+            'company' => $job->company ?? '-',
+            'link' => $job->job_link ?? '#'
+        ]
+    ];
+
+    return view('premium.result', compact('data'));
+}
+    
+}
