@@ -11,6 +11,10 @@
 .env.backup
 .phpunit.result.cache
 
+*.safetensors
+ai/model/
+ai/model2/
+
 # Python
 __pycache__/
 *.pyc
