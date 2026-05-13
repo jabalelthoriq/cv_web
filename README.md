@@ -15,13 +15,13 @@ Setelah download:
 2. Pastikan folder bernama:
 
 ```bash
-model2
+model_bert_cv
 ```
 
 3. Pindahkan ke:
 
 ```bash
-cv_web/ai/model2
+cv_web/ai/model_bert_cv
 ```
 
 Struktur akhirnya harus seperti ini:
@@ -29,7 +29,7 @@ Struktur akhirnya harus seperti ini:
 ```bash
 cv_web/
 └── ai/
-    └── model2/
+    └── model_bert_cv/
         ├── config.json
         ├── model.safetensors
         ├── tokenizer.json
@@ -57,12 +57,11 @@ Project ini menggunakan:
 ```bash
 cv_web/
 ├── ai/
-│   ├── model2/
+│   ├── model_bert_cv/
 │   ├── main.py
 │   ├── requirements.txt
 │   └── Dockerfile.ai
 ├── backend/
-├── nginx/
 ├── docker-compose.yml
 └── README.md
 ```
