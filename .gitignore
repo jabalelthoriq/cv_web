@@ -12,10 +12,8 @@
 .phpunit.result.cache
 
 *.safetensors
-!ai/model2/
-!ai/model2/**
 ai/model/
-
+ai/model2/
 
 # Python
 __pycache__/

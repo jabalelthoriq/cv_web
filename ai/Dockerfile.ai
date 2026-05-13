@@ -2,12 +2,20 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip
 
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 8000
+# download model dari Google Drive
+RUN wget --no-check-certificate \
+    "https://drive.google.com/uc?export=download&id=1DB4UmrpPWD3p_Ixqbf-R1JEAAi8_2uXC" \
+    -O model_bert_cv.zip && \
+    unzip model_bert_cv.zip && \
+    rm model_bert_cv.zip
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
