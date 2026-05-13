@@ -1,0 +1,10 @@
+.git
+node_modules
+vendor
+__pycache__
+*.pyc
+
+ai/venv
+ai/model
+ai/model2
+ai/dataset
