@@ -2,18 +2,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    wget \
-    unzip
+RUN apt-get update && apt-get install -y unzip
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gdown numpy==1.26.4
 
 COPY . .
 
-# download model dari Google Drive
-RUN wget --no-check-certificate \
-    "https://drive.google.com/uc?export=download&id=1DB4UmrpPWD3p_Ixqbf-R1JEAAi8_2uXC" \
+# download model dari google drive
+RUN gdown --fuzzy "https://drive.google.com/file/d/1DB4UmrpPWD3p_Ixqbf-R1JEAAi8_2uXC/view?usp=sharing" \
     -O model_bert_cv.zip && \
     unzip model_bert_cv.zip && \
     rm model_bert_cv.zip
