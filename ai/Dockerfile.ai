@@ -11,10 +11,10 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 
 COPY . .
 
-# download model dari google drive
-RUN gdown --fuzzy "https://drive.google.com/file/d/1DB4UmrpPWD3p_Ixqbf-R1JEAAi8_2uXC/view?usp=sharing" \
+RUN mkdir -p /app/model_bert_cv && \
+    gdown --fuzzy "https://drive.google.com/file/d/1DB4UmrpPWD3p_Ixqbf-R1JEAAi8_2uXC/view?usp=sharing" \
     -O model_bert_cv.zip && \
-    unzip model_bert_cv.zip && \
+    unzip model_bert_cv.zip -d /app/model_bert_cv && \
     rm model_bert_cv.zip
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -26,7 +26,7 @@ app.add_middleware(
 # =====================================================
 # LOAD MODEL
 # =====================================================
-MODEL_DIR = "model_bert_cv"
+MODEL_DIR = "/app/model_bert_cv"
 
 model = BertForSequenceClassification.from_pretrained(MODEL_DIR)
 tokenizer = BertTokenizer.from_pretrained(MODEL_DIR)
