@@ -13,7 +13,7 @@
 
 *.safetensors
 ai/model/
-ai/model2/
+
 
 # Python
 __pycache__/
