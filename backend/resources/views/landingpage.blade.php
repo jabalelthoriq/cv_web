@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>NEXUS.AI - Platform AI untuk Karir</title>
+    <title>CareerSense - Platform AI untuk Karir</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -124,7 +124,7 @@
             <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--neon-blue), var(--deep-blue)); display: flex; align-items: center; justify-content: center;">
                 <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke: #fff; stroke-width: 2; fill: none;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
             </div>
-            <span style="font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.02em; font-family: 'Space Grotesk', sans-serif;">NEXUS<span style="color: var(--neon-blue);">.AI</span></span>
+            <span style="font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.02em; font-family: 'Space Grotesk', sans-serif;">CAREER<span style="color: var(--neon-blue);">SENSE</span></span>
 </div>
         <div class="desktop-nav" style="gap: 32px;">
             <a href="#beranda" style="color: var(--text-muted); text-decoration: none; font-size: 15px; font-weight: 500;">Beranda</a>
@@ -654,7 +654,7 @@
 <section style="padding: 100px 24px;">
     <div class="glass-panel" style="max-width: 1000px; margin: 0 auto; padding: 80px 40px; text-align: center;">
         <h2 class="heading-lg">Siap Membuka <span style="color: var(--neon-blue);">Potensi Penuhmu?</span></h2>
-        <p class="text-body" style="margin: 0 auto 40px auto;">Bergabunglah dengan ribuan pencari kerja lainnya yang telah menemukan karir impian mereka bersama Nexus AI.</p>
+        <p class="text-body" style="margin: 0 auto 40px auto;">Bergabunglah dengan ribuan pencari kerja lainnya yang telah menemukan karir impian mereka bersama CareerSense.</p>
         @auth <a href="/dashboard" class="btn-primary" style="font-size: 18px; padding: 20px 48px;">Buka Dashboard</a>@else <a href="/register" class="btn-primary" style="font-size: 18px; padding: 20px 48px;">Buat Akun Gratis Sekarang</a>@endauth
     </div>
 </section>
@@ -663,14 +663,14 @@
 <footer id="tentang" style="border-top: 1px solid var(--border-glass); background: rgba(0,0,0,0.5); padding: 64px 24px 32px;">
     <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between;">
         <div style="max-width: 300px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;"><span style="font-size: 18px; font-weight: 700;">NEXUS<span style="color: var(--neon-blue);">.AI</span></span></div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;"><span style="font-size: 18px; font-weight: 700;">CAREER<span style="color: var(--neon-blue);">SENSE</span></span></div>
             <p style="color: var(--text-muted); font-size: 15px;">Memanfaatkan AI generatif untuk merevolusi proses rekrutmen dan pencarian kerja di Indonesia.</p>
         </div>
         <div><h4 style="color: #fff;">Platform</h4><div><a href="#" style="color: var(--text-muted);">Analisis CV</a></div></div>
         <div><h4 style="color: #fff;">Perusahaan</h4><div><a href="#" style="color: var(--text-muted);">Tentang Kami</a></div></div>
     </div>
     <div style="max-width: 1200px; margin: 32px auto 0; border-top: 1px solid var(--border-glass); padding-top: 32px; text-align: center;">
-        <p style="color: var(--text-muted);">&copy; 2026 Nexus AI. All rights reserved.</p>
+        <p style="color: var(--text-muted);">&copy; 2026 CareerSense. All rights reserved.</p>
     </div>
 </footer>
 
