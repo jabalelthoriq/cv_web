@@ -25,4 +25,5 @@ jobs:
             docker compose up -d --build
 
             docker compose exec -T backend php artisan migrate --force
+            docker compose exec -T backend php artisan test
             docker compose exec -T backend php artisan optimize:clear
