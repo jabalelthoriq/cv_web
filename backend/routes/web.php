@@ -213,6 +213,7 @@ Route::post('/subscribe', [PaymentController::class, 'subscribe']);
 Route::get('/premium/result', [
     PaymentController::class,
     'showResult'
-])->name('premium.result');
-
+])
+->middleware('signed')
+->name('premium.result');
 
