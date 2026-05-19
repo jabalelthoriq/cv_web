@@ -40,7 +40,7 @@ class CvController extends Controller
             'user_id' => $userId,
             'session_id' => $sessionId,
             'file_path' => $path,
-            'score' => null, // ❗ penting: null = belum selesai
+            'score' => null, 
             'analysis' => [
                 'status' => 'processing',
                 'message' => 'AI sedang menganalisis...'
@@ -49,9 +49,9 @@ class CvController extends Controller
 
         // Trigger FastAPI (async)
         try {
-            Http::timeout(2)->post('http://127.0.0.1:8004/analyze', [
+            Http::timeout(10)->post('http://ai:8000/analyze', [
                 'cv_id' => $cv->id,
-                'file_path' => storage_path('app/public/' . $path),
+                'file_path' => $path,
             ]);
         } catch (\Exception $e) {
             Log::warning('FastAPI error: ' . $e->getMessage());
