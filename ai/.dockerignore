@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+dataset/
+venv/
+.env
+
+.git
+.gitignore
+
+*.ipynb
+
+.cache/
