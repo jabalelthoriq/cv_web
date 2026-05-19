@@ -22,7 +22,7 @@ class InterviewController extends Controller
             $answer = $answers[$index] ?? '';
 
             // Panggil FastAPI untuk evaluate
-            $response = \Http::post('http://127.0.0.1:8004/evaluate-answer', [
+            $response = \Http::timeout(30)->post(env('AI_API_URL', 'http://ai:8000') . '/evaluate-answer', [
                 'interview_id' => $id,
                 'answer' => $answer
             ]);
