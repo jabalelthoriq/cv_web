@@ -101,6 +101,10 @@ Route::get('/interviews/by-cv/{cvId}', function ($cvId) {
         ->take(10)
         ->get();
 });
+Route::post('/generate-interview', [
+    InterviewController::class,
+    'generate'
+]);
 
 
 /*
