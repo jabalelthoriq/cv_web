@@ -37,10 +37,10 @@ model.eval()
 # DATABASE CONFIG
 # =====================================================
 db_config = {
-    "host": "localhost",
-    "user": "root",
-    "password": "password",
-    "database": "laravel"
+    "host": os.getenv("DB_HOST", "db"),
+    "user": os.getenv("DB_USERNAME", "root"),
+    "password": os.getenv("DB_PASSWORD", "password"),
+    "database": os.getenv("DB_DATABASE", "laravel")
 }
 
 # =====================================================
@@ -63,7 +63,7 @@ gemini_model = genai.GenerativeModel("gemini-2.5-flash")
 # Sesuaikan dengan path storage Laravel kamu
 # Contoh: /var/www/html/namaproject/storage/app/public
 # =====================================================
-LARAVEL_STORAGE_BASE = "/var/www/html/namaproject/storage/app/public"
+LARAVEL_STORAGE_BASE = "/var/www/html/public/storage"
 
 
 # =====================================================
@@ -831,6 +831,6 @@ if __name__ == "__main__":
 
     uvicorn.run(
         app,
-        host="127.0.0.1",
-        port=8004
+        host="0.0.0.0",
+        port=8000
     )
