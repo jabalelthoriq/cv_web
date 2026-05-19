@@ -303,7 +303,8 @@ private function processSuccess($payment)
     $premiumLink = URL::temporarySignedRoute(
     'premium.result',
     now()->addHours(6),
-    ['token' => $payload]
+    ['token' => $payload],
+    false
 );
 
     $payment->update([
@@ -338,9 +339,9 @@ private function processSuccess($payment)
 
     public function showResult(Request $request)
 {
-    if (!$request->hasValidSignature()) {
-        abort(403);
-    }
+    if (!$request->hasValidSignature(false)) {
+    abort(403, 'Invalid signature.');
+}
 
     $payload = decrypt($request->token);
 

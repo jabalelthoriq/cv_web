@@ -214,6 +214,5 @@ Route::get('/premium/result', [
     PaymentController::class,
     'showResult'
 ])
-->middleware('signed')
+->middleware('signed:relative')
 ->name('premium.result');
-

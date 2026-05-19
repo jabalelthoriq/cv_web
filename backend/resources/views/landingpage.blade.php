@@ -1154,12 +1154,7 @@ async function waitForPremiumResult(orderId) {
                 // 🔥 FIX NGROK + ASYNC
                 setTimeout(async () => {
                     try {
-                        // warmup request ke ngrok
-                        await fetch(data.link, {
-                            headers: {
-                                "ngrok-skip-browser-warning": "true"
-                            }
-                        });
+                        
 
                         // baru buka tab
                         window.open(data.link, '_blank');
