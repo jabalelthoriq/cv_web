@@ -639,16 +639,16 @@ async function startInterview() {
     document.getElementById("progressContainer").classList.remove("hidden");
     
     try {
-        const response = await fetch("http://127.0.0.1:8004/generate-interview", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                user_id: {{ auth()->id() }},
-                cv_id: cvId,
-                job_tema: jobTema  // ✅ HANYA kirim job_tema
-            })
+        const response = await fetch("/generate-interview", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
+    },
+    body: JSON.stringify({
+        cv_id: cvId,
+        job_tema: jobTema
+    })
         });
         
         if (!response.ok) {

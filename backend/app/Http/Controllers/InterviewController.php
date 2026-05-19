@@ -51,4 +51,14 @@ class InterviewController extends Controller
         ], 500);
     }
 }
+public function generate(Request $request)
+{
+    $response = \Http::timeout(60)->post(env('AI_API_URL', 'http://ai:8000') . '/generate-interview', [
+        'user_id' => auth()->id(),
+        'cv_id' => $request->cv_id,
+        'job_tema' => $request->job_tema,
+    ]);
+
+    return response()->json($response->json(), $response->status());
+}
 }
