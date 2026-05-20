@@ -46,14 +46,14 @@ db_config = {
 # =====================================================
 # RAPID API CONFIG
 # =====================================================
-RAPIDAPI_KEY = "b25b1c209bmshf7eadd4554dde75p105d85jsn903fd0ca2145"
+RAPIDAPI_KEY = "a8376fadf7mshdbd8b771138e80ap16aff2jsn4bd791409814"
 RAPIDAPI_HOST = "jsearch.p.rapidapi.com"
 
 # =====================================================
 # GEMINI CONFIG
 # =====================================================
 
-GEMINI_API_KEY = "AIzaSyDChBZySgWJaZ5L7nmDw1i4AOwCUuXNKII"
+GEMINI_API_KEY = "AIzaSyA2CiWtaOH2wg9lVB5_sVQchCB55nVb0go"
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -237,7 +237,7 @@ def fetch_job_recommendations(job_title, limit=12):
         url = "https://jsearch.p.rapidapi.com/search"
 
         headers = {
-            "X-RapidAPI-Key": "b25b1c209bmshf7eadd4554dde75p105d85jsn903fd0ca2145",
+            "X-RapidAPI-Key": "a8376fadf7mshdbd8b771138e80ap16aff2jsn4bd791409814",
             "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
         }
 
@@ -663,9 +663,9 @@ async def generate_interview(request: InterviewRequest):
         cursor.execute(
             """
             DELETE FROM interviews
-            WHERE cv_id = %s AND job_tema = %s
+            WHERE cv_id = %s AND user_id = %s
             """,
-            (request.cv_id, job_tema)
+            (request.cv_id, request.user_id)
         )
         print(f"Deleted old interviews for cv_id={request.cv_id}, job_tema={job_tema}")
         
@@ -678,26 +678,20 @@ async def generate_interview(request: InterviewRequest):
                 (
                     user_id,
                     cv_id,
-                    job_tema,
                     question,
                     answer,
                     score,
                     feedback,
-                    question_order,
-                    duration_seconds,
-                    status,
                     created_at,
                     updated_at
                 )
                 VALUES
-                (%s, %s, %s, %s, NULL, 0, NULL, %s, 180, 'pending', NOW(), NOW())
+                (%s, %s, %s, NULL, 0, NULL, NOW(), NOW())
                 """,
                 (
                     request.user_id,
                     request.cv_id,
-                    job_tema,
-                    question,
-                    index
+                    question
                 )
             )
             inserted_ids.append(cursor.lastrowid)
@@ -754,7 +748,7 @@ async def evaluate_answer(request: EvaluateAnswerRequest):
         # Ambil question dari DB
         cursor.execute(
             """
-            SELECT id, question, user_id, cv_id, job_id, job_tema
+            SELECT id, question, user_id, cv_id
             FROM interviews
             WHERE id = %s
             LIMIT 1
@@ -786,7 +780,6 @@ async def evaluate_answer(request: EvaluateAnswerRequest):
                 answer = %s,
                 score = %s,
                 feedback = %s,
-                status = 'evaluated',
                 updated_at = NOW()
             WHERE id = %s
             """,
