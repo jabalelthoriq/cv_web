@@ -30,6 +30,10 @@ jobs:
 
             cd /home/Kelompok28/cv_web
 
+            echo "🔑 Fixing permissions..."
+            sudo chown -R $USER:$USER backend/storage
+            sudo chown -R $USER:$USER backend/bootstrap/cache
+
             echo "📥 Pull latest code..."
             git fetch origin main
             git reset --hard origin/main
