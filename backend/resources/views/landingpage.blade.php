@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>CareerSense - Platform AI untuk Karir</title>
+    <title>CareerSense - Platform AI untuk Karir Terbaik</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -651,11 +651,54 @@
 </section>
 
 <!-- CTA -->
-<section style="padding: 100px 24px;">
+<<section style="padding: 100px 24px;">
     <div class="glass-panel" style="max-width: 1000px; margin: 0 auto; padding: 80px 40px; text-align: center;">
-        <h2 class="heading-lg">Siap Membuka <span style="color: var(--neon-blue);">Potensi Penuhmu?</span></h2>
-        <p class="text-body" style="margin: 0 auto 40px auto;">Bergabunglah dengan ribuan pencari kerja lainnya yang telah menemukan karir impian mereka bersama CareerSense.</p>
-        @auth <a href="/dashboard" class="btn-primary" style="font-size: 18px; padding: 20px 48px;">Buka Dashboard</a>@else <a href="/register" class="btn-primary" style="font-size: 18px; padding: 20px 48px;">Buat Akun Gratis Sekarang</a>@endauth
+        
+        <h2 class="heading-lg">
+            Siap Membuka 
+            <span style="color: var(--neon-blue);">
+                Potensi Penuhmu?
+            </span>
+        </h2>
+
+        <p class="text-body" style="margin: 0 auto 40px auto;">
+            Bergabunglah dengan ribuan pencari kerja lainnya yang telah menemukan karir impian mereka bersama CareerSense.
+        </p>
+
+        @auth
+
+            @if(auth()->user()->hasActiveSubscription())
+
+                <!-- ✅ SUDAH SUBSCRIBE -->
+                <a href="/dashboard"
+                   class="btn-primary"
+                   style="font-size: 18px; padding: 20px 48px;">
+                    Buka Dashboard
+                </a>
+
+            @else
+
+                <!-- 🔒 BELUM SUBSCRIBE -->
+                <button
+                    onclick="blockedDashboard()"
+                    class="btn-primary"
+                    style="font-size: 18px; padding: 20px 48px; opacity: 0.6; cursor: not-allowed;">
+                    Buka Dashboard
+                </button>
+
+            @endif
+
+        @else
+
+            <!-- 👤 BELUM LOGIN -->
+            <a href="/register"
+               class="btn-primary"
+               style="font-size: 18px; padding: 20px 48px;">
+                Buat Akun Gratis Sekarang
+            </a>
+
+        @endauth
+
     </div>
 </section>
 
