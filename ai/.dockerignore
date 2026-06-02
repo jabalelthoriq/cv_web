@@ -11,5 +11,16 @@ venv/
 .gitignore
 
 *.ipynb
-
 .cache/
+
+model/
+model2/
+models/
+runs/
+testing/
+
+*.pt
+*.pth
+*.onnx
+*.bin
+*.zip
