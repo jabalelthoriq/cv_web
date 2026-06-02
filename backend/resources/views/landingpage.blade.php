@@ -199,7 +199,7 @@
                 Tingkatkan Peluang Karirmu<br />
                 dengan
                 <span style="color: var(--neon-blue);" class="text-glow">
-                    Kecerdasan Buatan
+                    Kecerdasan 
                 </span>
             </h1>
 
