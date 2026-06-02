@@ -9,13 +9,13 @@ venv/
 
 .git
 .gitignore
-
 *.ipynb
 .cache/
 
 model/
 model2/
 models/
+model_bert_cv/
 runs/
 testing/
 
@@ -24,3 +24,4 @@ testing/
 *.onnx
 *.bin
 *.zip
+*.safetensors
