@@ -30,11 +30,14 @@ jobs:
 
             cd /home/Kelompok28/cv_web
 
+            echo "🔓 Preparing repo permissions..."
+            sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache
+
             echo "📥 Pull latest code..."
             git fetch origin main
             git reset --hard origin/main
 
-            echo "🔑 Fixing permissions..."
+            echo "🔑 Fixing Laravel permissions..."
             sudo mkdir -p backend/storage/framework/views
             sudo mkdir -p backend/storage/framework/cache/data
             sudo mkdir -p backend/storage/framework/sessions
@@ -63,6 +66,10 @@ jobs:
             docker compose exec -T backend php artisan config:cache
             docker compose exec -T backend php artisan route:cache
             docker compose exec -T backend php artisan view:cache
+
+            echo "🔐 Final Laravel permissions..."
+            sudo chown -R 33:33 backend/storage backend/bootstrap/cache
+            sudo chmod -R ug+rwX backend/storage backend/bootstrap/cache
 
             echo "🗑️ Cleaning docker images..."
             docker image prune -af
