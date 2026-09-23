@@ -23,7 +23,10 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'avatar'
+        'avatar',
+        'google_id',
+        'email_verified_at',
+        'last_login_at',
     ];
 
     /**
@@ -41,6 +44,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -83,10 +87,36 @@ public function hasActiveSubscription()
         ->where('expired_at', '>', now())
         ->exists();
 }
+
+public function currentPlan(): string
+{
+    if ($this->role === 'admin') {
+        return 'pro';
+    }
+
+    return $this->activeSubscription()->value('plan') ?? 'free';
+}
+
+public function hasPlanAtLeast(string $requiredPlan): bool
+{
+    $rank = [
+        'free' => 0,
+        'plus' => 1,
+        'pro' => 2,
+    ];
+
+    return ($rank[$this->currentPlan()] ?? 0) >= ($rank[$requiredPlan] ?? 0);
+}
 public function activeSubscription()
 {
     return $this->hasOne(Subscription::class)
+        ->where('status', 'active')
         ->where('expired_at', '>', now())
         ->latestOfMany();
+}
+
+public function payments()
+{
+    return $this->hasMany(\App\Models\Payment::class);
 }
 }

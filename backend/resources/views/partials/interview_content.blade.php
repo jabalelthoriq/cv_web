@@ -183,6 +183,9 @@
                             class="px-4 py-2 rounded-lg bg-red-500 text-white text-sm">
                         🎤 Mulai Bicara
                     </button>
+                    <span id="sttStatus" class="self-center text-xs text-white/45">
+                        TTS/STT gratis aktif di browser
+                    </span>
                 </div>
 
                 <div class="flex justify-between gap-3">

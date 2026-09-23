@@ -135,21 +135,9 @@
         </div>
        <div style="display: flex; gap: 16px; align-items: center;">
     @auth
-
-        @if(auth()->user()->hasActiveSubscription())
-            <!-- ✅ SUDAH SUBSCRIBE -->
-            <a href="/dashboard" class="btn-primary" style="padding: 8px 20px; font-size: 14px;">
-                Dashboard
-            </a>
-        @else
-            <!-- 🔒 BELUM SUBSCRIBE -->
-            <button onclick="blockedDashboard()" 
-                class="btn-primary"
-                style="padding: 8px 20px; font-size: 14px; opacity: 0.6; cursor: not-allowed;">
-                Dashboard
-            </button>
-        @endif
-
+        <a href="/dashboard" class="btn-primary" style="padding: 8px 20px; font-size: 14px;">
+            Dashboard
+        </a>
     @else
         <a href="/login" class="desktop-nav" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 500;">
             Masuk
@@ -221,13 +209,19 @@
                     <a href="/dashboard"
                        class="btn-primary"
                        style="font-size: 16px; padding: 18px 38px;">
-                        Upload CV Sekarang
+                        Buka Dashboard
                     </a>
                 @else
-                    <a href="/register"
+                    <a href="{{ route('auth.google.redirect') }}"
                        class="btn-primary"
-                       style="font-size: 16px; padding: 18px 38px;">
-                        Upload CV Sekarang
+                       style="font-size: 16px; padding: 18px 38px; gap: 10px;">
+                        <svg style="width:20px;height:20px;flex:0 0 auto;" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.31 9.14 5.38 12 5.38z"/>
+                        </svg>
+                        Masuk dengan Google
                     </a>
                 @endauth
 
@@ -651,7 +645,7 @@
 </section>
 
 <!-- CTA -->
-<<section style="padding: 100px 24px;">
+<section style="padding: 100px 24px;">
     <div class="glass-panel" style="max-width: 1000px; margin: 0 auto; padding: 80px 40px; text-align: center;">
         
         <h2 class="heading-lg">
@@ -666,27 +660,11 @@
         </p>
 
         @auth
-
-            @if(auth()->user()->hasActiveSubscription())
-
-                <!-- ✅ SUDAH SUBSCRIBE -->
-                <a href="/dashboard"
-                   class="btn-primary"
-                   style="font-size: 18px; padding: 20px 48px;">
-                    Buka Dashboard
-                </a>
-
-            @else
-
-                <!-- 🔒 BELUM SUBSCRIBE -->
-                <button
-                    onclick="blockedDashboard()"
-                    class="btn-primary"
-                    style="font-size: 18px; padding: 20px 48px; opacity: 0.6; cursor: not-allowed;">
-                    Buka Dashboard
-                </button>
-
-            @endif
+            <a href="/dashboard"
+               class="btn-primary"
+               style="font-size: 18px; padding: 20px 48px;">
+                Buka Dashboard
+            </a>
 
         @else
 
@@ -1095,6 +1073,7 @@ async function payForAnalysis() {
         snap.pay(data.snap_token, {
             onSuccess: async function(result) {
                 debugLog(`Payment success: ${JSON.stringify(result)}`);
+                const premiumTab = openPremiumResultTab();
 
                 Swal.fire({
                     title: 'Pembayaran Berhasil!',
@@ -1105,7 +1084,7 @@ async function payForAnalysis() {
                     color: '#fff'
                 });
 
-                await waitForPremiumResult(data.order_id);
+                await waitForPremiumResult(data.order_id, premiumTab);
             },
 
             onPending: function(result) {
@@ -1159,9 +1138,98 @@ async function payForAnalysis() {
 }
 let isPollingResult = false;
 
-async function waitForPremiumResult(orderId) {
+function openPremiumResultTab() {
+    const tab = window.open('', '_blank');
+
+    if (!tab) {
+        debugLog('Premium result tab blocked by browser');
+        return null;
+    }
+
+    tab.document.write(`
+        <!doctype html>
+        <html lang="id">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Memuat Detail Analisis...</title>
+            <style>
+                body {
+                    margin: 0;
+                    min-height: 100vh;
+                    display: grid;
+                    place-items: center;
+                    background: #050b16;
+                    color: #e5f8ff;
+                    font-family: Inter, Arial, sans-serif;
+                }
+                .loader {
+                    width: min(420px, calc(100vw - 40px));
+                    padding: 28px;
+                    border: 1px solid rgba(0, 210, 255, .24);
+                    border-radius: 18px;
+                    background: rgba(255,255,255,.05);
+                    text-align: center;
+                }
+                .pulse {
+                    width: 42px;
+                    height: 42px;
+                    margin: 0 auto 18px;
+                    border-radius: 999px;
+                    border: 3px solid rgba(0,210,255,.25);
+                    border-top-color: #00d2ff;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin { to { transform: rotate(360deg); } }
+            </style>
+        </head>
+        <body>
+            <div class="loader">
+                <div class="pulse"></div>
+                <h2>Menyiapkan detail analisis</h2>
+                <p>Tab ini akan otomatis membuka hasil premium setelah pembayaran selesai diproses.</p>
+            </div>
+        </body>
+        </html>
+    `);
+    tab.document.close();
+
+    return tab;
+}
+
+function openPremiumLink(link, premiumTab = null) {
+    const targetUrl = new URL(link, window.location.origin).href;
+
+    if (premiumTab && !premiumTab.closed) {
+        premiumTab.location.href = targetUrl;
+        premiumTab.focus();
+        return;
+    }
+
+    const opened = window.open(targetUrl, '_blank');
+    if (opened) {
+        opened.focus();
+        return;
+    }
+
+    Swal.fire({
+        title: 'Detail Analisis Siap',
+        text: 'Browser memblokir tab otomatis. Klik tombol di bawah untuk membuka detail.',
+        icon: 'success',
+        confirmButtonText: 'Buka Detail Lengkap',
+        background: '#07111f',
+        color: '#fff'
+    }).then(() => {
+        window.location.href = targetUrl;
+    });
+}
+
+async function waitForPremiumResult(orderId, premiumTab = null) {
     if (isPollingResult) {
         debugLog('Polling sudah berjalan, skip...');
+        if (premiumTab && !premiumTab.closed) {
+            premiumTab.close();
+        }
         return;
     }
 
@@ -1194,19 +1262,7 @@ async function waitForPremiumResult(orderId) {
                     color: '#fff'
                 });
 
-                // 🔥 FIX NGROK + ASYNC
-                setTimeout(async () => {
-                    try {
-                        
-
-                        // baru buka tab
-                        window.open(data.link, '_blank');
-
-                    } catch (e) {
-                        debugLog('Warmup gagal, tetap buka link');
-                        window.open(data.link, '_blank');
-                    }
-                }, 1200);
+                setTimeout(() => openPremiumLink(data.link, premiumTab), 800);
 
                 isPollingResult = false;
                 return;
@@ -1219,6 +1275,10 @@ async function waitForPremiumResult(orderId) {
         if (attempts >= maxAttempts) {
             clearInterval(interval);
             isPollingResult = false;
+
+            if (premiumTab && !premiumTab.closed) {
+                premiumTab.close();
+            }
 
             Swal.fire({
                 title: 'Timeout',
@@ -1258,26 +1318,59 @@ async function subscribePlan(plan) {
         const data = await response.json();
         Swal.close();
 
-        if (!data.snap_token) {
+        if (!data.snap_token || !data.order_id) {
             throw new Error('Snap token tidak ada');
         }
 
         snap.pay(data.snap_token, {
-            onSuccess: function(result) {
-    Swal.fire({
-        title: 'Berhasil!',
-        text: 'Langganan aktif',
-        icon: 'success',
-        background: '#07111f',
-        color: '#fff'
-    }).then(() => {
-        // 🔥 WAJIB reload biar auth()->user() update
-        window.location.href = '/';
-setTimeout(() => {
-    location.reload();
-}, 500);
-    });
-},
+            onSuccess: async function(result) {
+                try {
+                    debugLog(`Subscription success: ${JSON.stringify(result)}`);
+
+                    Swal.fire({
+                        title: 'Mengaktifkan Langganan...',
+                        text: 'Mengonfirmasi pembayaran',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading(),
+                        background: '#07111f',
+                        color: '#fff'
+                    });
+
+                    const confirmResponse = await fetch('/subscription/confirm', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ order_id: data.order_id })
+                    });
+
+                    const confirmData = await confirmResponse.json();
+
+                    if (!confirmResponse.ok || confirmData.status !== 'success') {
+                        throw new Error(confirmData.message || 'Pembayaran belum terkonfirmasi');
+                    }
+
+                    Swal.fire({
+                        title: 'Berhasil!',
+                        text: 'Langganan aktif',
+                        icon: 'success',
+                        background: '#07111f',
+                        color: '#fff'
+                    }).then(() => {
+                        window.location.href = '/dashboard';
+                    });
+                } catch (err) {
+                    Swal.fire({
+                        title: 'Langganan Belum Aktif',
+                        text: err.message,
+                        icon: 'warning',
+                        background: '#07111f',
+                        color: '#fff'
+                    });
+                }
+            },
 
             onPending: function() {
                 Swal.fire({

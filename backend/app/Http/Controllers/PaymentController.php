@@ -25,6 +25,12 @@ class PaymentController extends Controller
 public function subscribe(Request $request)
 {
     try {
+        if (!auth()->check()) {
+            return response()->json([
+                'message' => 'Silakan login terlebih dahulu'
+            ], 401);
+        }
+
         \Midtrans\Config::$serverKey = config('midtrans.server_key');
         \Midtrans\Config::$isProduction = false;
         \Midtrans\Config::$isSanitized = true;
@@ -141,10 +147,73 @@ private function processSubscription($payment)
     }
 
     $payment->update([
-        'status' => 'paid'
+        'status' => 'paid',
+        'paid_at' => now(),
     ]);
 
     \Log::info("✅ Subscription aktif user {$userId} => {$payment->plan}");
+}
+
+public function confirmSubscription(Request $request)
+{
+    $request->validate([
+        'order_id' => 'required|string',
+    ]);
+
+    $payment = Payment::where('order_id', $request->order_id)
+        ->where('user_id', auth()->id())
+        ->where('type', 'subscription')
+        ->first();
+
+    if (!$payment) {
+        return response()->json([
+            'message' => 'Payment subscription tidak ditemukan'
+        ], 404);
+    }
+
+    if ($payment->status === 'paid') {
+        return response()->json([
+            'status' => 'success',
+            'plan' => $payment->plan
+        ]);
+    }
+
+    try {
+        \Midtrans\Config::$serverKey = config('midtrans.server_key');
+        \Midtrans\Config::$isProduction = false;
+
+        $status = (array) \Midtrans\Transaction::status($payment->order_id);
+        $transactionStatus = $status['transaction_status'] ?? null;
+        $fraudStatus = $status['fraud_status'] ?? null;
+
+        if ($transactionStatus === 'settlement' ||
+            ($transactionStatus === 'capture' && $fraudStatus === 'accept')) {
+            $this->processSubscription($payment);
+
+            return response()->json([
+                'status' => 'success',
+                'plan' => $payment->plan
+            ]);
+        }
+
+        if (in_array($transactionStatus, ['expire', 'cancel', 'deny'], true)) {
+            $payment->update([
+                'status' => $transactionStatus === 'expire' ? 'expired' : 'cancelled'
+            ]);
+        }
+
+        return response()->json([
+            'status' => $transactionStatus ?: 'pending'
+        ], 202);
+
+    } catch (\Exception $e) {
+        \Log::error('MIDTRANS SUBSCRIPTION CONFIRM ERROR: ' . $e->getMessage());
+
+        return response()->json([
+            'message' => 'Gagal konfirmasi pembayaran',
+            'error' => $e->getMessage()
+        ], 500);
+    }
 }
 
 public function createPayment($cv_id)
@@ -232,8 +301,8 @@ public function createPayment($cv_id)
     $payment = Payment::where('order_id', $order_id)->first();
 
     if (!$payment) {
-        \Log::error("❌ Payment tidak ditemukan: $order_id");
-        return response()->json(['status' => 'not_found'], 404);
+        \Log::warning("Payment notification ignored, order tidak ditemukan: $order_id");
+        return response()->json(['status' => 'ignored', 'reason' => 'order_not_found']);
     }
 
     // 🛡️ idempotent (hindari double update)
@@ -284,28 +353,12 @@ private function processSuccess($payment)
         return;
     }
 
-    $job = optional($cv->jobRecommendations->first());
-
-    $payload = encrypt([
-        'payment_id' => $payment->id,
-        'cv_id' => $cv->id,
-        'score' => $cv->score,
-        'analysis' => $cv->analysis,
-        'job_tema' => $cv->job_tema,
-        'job' => [
-            'title' => $job->job_title ?? '-',
-            'company' => $job->company ?? '-',
-            'link' => $job->job_link ?? '#'
-        ],
-        'paid_at' => now()->toDateTimeString()
-    ]);
-
     $premiumLink = URL::temporarySignedRoute(
-    'premium.result',
-    now()->addHours(6),
-    ['token' => $payload],
-    false
-);
+        'premium.result',
+        now()->addHours(6),
+        ['payment' => $payment->id],
+        false
+    );
 
     $payment->update([
         'status' => 'paid',
@@ -326,6 +379,16 @@ private function processSuccess($payment)
         }
 
         if ($payment->status !== 'paid') {
+            $this->syncCvPaymentStatusFromMidtrans($payment);
+            $payment->refresh();
+        }
+
+        if ($payment->status === 'paid' && $payment->type === 'cv' && $this->needsFreshPremiumLink($payment)) {
+            $this->processSuccess($payment);
+            $payment->refresh();
+        }
+
+        if ($payment->status !== 'paid' || empty($payment->result_link)) {
             return response()->json([
                 'status' => 'waiting'
             ]);
@@ -337,31 +400,109 @@ private function processSuccess($payment)
         ]);
     }
 
-    public function showResult(Request $request)
-{
-    if (!$request->hasValidSignature(false)) {
-    abort(403, 'Invalid signature.');
-}
+    private function syncCvPaymentStatusFromMidtrans(Payment $payment): void
+    {
+        if ($payment->type !== 'cv') {
+            return;
+        }
 
-    $payload = decrypt($request->token);
+        try {
+            \Midtrans\Config::$serverKey = config('midtrans.server_key');
+            \Midtrans\Config::$isProduction = false;
+            \Midtrans\Config::$isSanitized = true;
+            \Midtrans\Config::$is3ds = true;
 
-    $payment = Payment::with('cv.jobRecommendations')
-        ->findOrFail($payload['payment_id']);
+            $status = (array) \Midtrans\Transaction::status($payment->order_id);
+            $transactionStatus = $status['transaction_status'] ?? null;
+            $fraudStatus = $status['fraud_status'] ?? null;
 
-    $cv = $payment->cv;
-    $job = optional($cv->jobRecommendations->first());
+            if ($transactionStatus === 'settlement' ||
+                ($transactionStatus === 'capture' && in_array($fraudStatus, [null, 'accept'], true))) {
+                $this->processSuccess($payment);
+                return;
+            }
 
-    $data = [
-        'score' => $cv->score,
-        'analysis' => $cv->analysis,
-        'job' => [
-            'title' => $job->job_title ?? '-',
-            'company' => $job->company ?? '-',
-            'link' => $job->job_link ?? '#'
-        ]
-    ];
+            if ($transactionStatus === 'expire') {
+                $payment->update(['status' => 'expired']);
+                return;
+            }
 
-    return view('premium.result', compact('data'));
-}
+            if (in_array($transactionStatus, ['cancel', 'deny'], true)) {
+                $payment->update(['status' => 'cancelled']);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning("Gagal sync status Midtrans untuk {$payment->order_id}: {$e->getMessage()}");
+        }
+    }
+
+    private function needsFreshPremiumLink(Payment $payment): bool
+    {
+        return empty($payment->result_link)
+            || str_contains($payment->result_link, 'token=')
+            || strlen($payment->result_link) > 1900;
+    }
+
+    public function showResult(Request $request, Payment $payment)
+    {
+        if (!$request->hasValidSignature(false)) {
+            abort(403, 'Invalid signature.');
+        }
+
+        $payment = Payment::with([
+            'cv.jobRecommendations' => fn ($query) => $query->orderByDesc('match_score'),
+        ])->findOrFail($payment->id);
+
+        if ($payment->status !== 'paid' || $payment->type !== 'cv') {
+            abort(403, 'Akses premium belum aktif.');
+        }
+
+        $cv = $payment->cv;
+
+        if (!$cv) {
+            abort(404, 'Data CV tidak ditemukan.');
+        }
+
+        $topJob = $this->topMatchedJobForCv($cv);
+
+        $data = [
+            'score' => $cv->score ?? 0,
+            'analysis' => $cv->analysis ?? [],
+            'file_name' => $cv->file_path ? basename($cv->file_path) : 'CV',
+            'job_tema' => $cv->job_tema,
+            'job' => [
+                'title' => $topJob?->job_title ?? null,
+                'company' => $topJob?->company ?? null,
+                'match_score' => $topJob?->match_score,
+                'link' => $topJob?->job_link,
+                'job_tema' => $topJob?->job_tema ?? $cv->job_tema,
+            ],
+        ];
+
+        return view('premium.result', compact('data'));
+    }
+
+    private function topMatchedJobForCv(Cv $cv): ?JobRecommendation
+    {
+        $topJob = $cv->jobRecommendations
+            ->sortByDesc(fn (JobRecommendation $job) => (int) $job->match_score)
+            ->first();
+
+        if ($topJob) {
+            return $topJob;
+        }
+
+        if (!$cv->user_id) {
+            return null;
+        }
+
+        return JobRecommendation::query()
+            ->where('user_id', $cv->user_id)
+            ->where(function ($query) use ($cv) {
+                $query->where('cv_id', $cv->id)
+                    ->orWhereNull('cv_id');
+            })
+            ->orderByDesc('match_score')
+            ->first();
+    }
     
 }

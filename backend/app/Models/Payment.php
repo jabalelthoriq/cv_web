@@ -13,10 +13,16 @@ class Payment extends Model
     'type',
     'plan',
     'status',
-    'result_link'
+    'result_link',
+    'paid_at',
 ];
     public function cv()
 {
     return $this->belongsTo(Cv::class);
+}
+
+public function user()
+{
+    return $this->belongsTo(User::class);
 }
 }

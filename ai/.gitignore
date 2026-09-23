@@ -1,4 +1,0 @@
-# Virtual Environment
-venv/
-.env/
-ai/dataset/resumes_dataset.jsonl

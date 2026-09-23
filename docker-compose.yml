@@ -9,15 +9,16 @@ services:
       - db
     environment:
       - DB_HOST=db
-      - DB_DATABASE=laravel
-      - DB_USERNAME=root
-      - DB_PASSWORD=password
+      - DB_DATABASE=careersense
+      - DB_USERNAME=careersense
+      - DB_PASSWORD=careersense
+      - AI_API_URL=http://ai:8000
     restart: unless-stopped
 
   nginx:
     image: nginx:alpine
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"
     volumes:
       - ./backend:/var/www/html
       - ./nginx.conf:/etc/nginx/nginx.conf
@@ -30,17 +31,18 @@ services:
       context: ./ai
       dockerfile: Dockerfile.ai
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./ai:/app
       - ./backend/storage/app/public:/var/www/html/public/storage
     depends_on:
-      - db
+      - backend
     environment:
-      - DB_HOST=db
-      - DB_DATABASE=laravel
-      - DB_USERNAME=root
-      - DB_PASSWORD=password
+      - STORAGE_ROOT=/var/www/html/public/storage
+      - USE_SENTENCE_TRANSFORMER=true
+      - SEMANTIC_MODEL=/app/models/indoSBERT-large
+      - WHISPER_MODEL=base
+      - WHISPER_CACHE_DIR=/app/models/whisper
     dns:
       - 8.8.8.8
       - 1.1.1.1
@@ -49,10 +51,12 @@ services:
   db:
     image: mysql:8.0
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: laravel
+      MYSQL_DATABASE: careersense
+      MYSQL_USER: careersense
+      MYSQL_PASSWORD: careersense
     volumes:
       - db_data:/var/lib/mysql
     restart: unless-stopped
@@ -60,77 +64,13 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     environment:
       PMA_HOST: db
       PMA_USER: root
       PMA_PASSWORD: password
     depends_on:
       - db
-    restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus
-    container_name: cv_web-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana
-    container_name: cv_web-grafana
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
-
-  node-exporter:
-    image: prom/node-exporter
-    container_name: node-exporter
-    ports:
-      - "9100:9100"
-    restart: unless-stopped
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: cadvisor
-    privileged: true
-    ports:
-      - "8088:8080"
-    devices:
-      - /dev/kmsg
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
-      - /dev/disk:/dev/disk:ro
-    restart: unless-stopped
-
-  mysqld-exporter:
-    image: prom/mysqld-exporter
-    container_name: mysqld-exporter
-    ports:
-      - "9104:9104"
-    environment:
-      MYSQLD_EXPORTER_PASSWORD: password
-    command:
-      - "--mysqld.username=root"
-      - "--mysqld.address=db:3306"
-    depends_on:
-      - db
-    restart: unless-stopped
-
-  nginx-exporter:
-    image: nginx/nginx-prometheus-exporter:latest
-    container_name: nginx-exporter
-    ports:
-      - "9113:9113"
-    command:
-      - -nginx.scrape-uri=http://nginx/nginx_status
-    depends_on:
-      - nginx
     restart: unless-stopped
 
 volumes:

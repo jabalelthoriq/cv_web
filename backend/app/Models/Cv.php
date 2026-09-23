@@ -11,9 +11,11 @@ class Cv extends Model
 
     protected $fillable = [
         'user_id',
+        'session_id',
         'file_path',
         'score',
         'analysis',
+        'job_tema',
     ];
 
     protected $casts = [

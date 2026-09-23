@@ -93,6 +93,38 @@
                         @endforeach
                     </div>
                     @endif
+
+                    <div class="mt-4 space-y-3">
+                        <div>
+                            <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">
+                                Skill cocok
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                @forelse(($job['matched_skills'] ?? []) as $skill)
+                                    <span class="text-[10px] px-2 py-1 rounded-full border border-green-500/20 bg-green-500/10 text-green-300">
+                                        {{ $skill }}
+                                    </span>
+                                @empty
+                                    <span class="text-[10px] text-slate-500">Belum terdeteksi</span>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">
+                                Skill missing
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                @forelse(($job['missing_skills'] ?? []) as $skill)
+                                    <span class="text-[10px] px-2 py-1 rounded-full border border-red-500/20 bg-red-500/10 text-red-300">
+                                        {{ $skill }}
+                                    </span>
+                                @empty
+                                    <span class="text-[10px] text-green-300">Requirement utama sudah cocok</span>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- FOOTER -->

@@ -15,6 +15,10 @@ use App\Http\Controllers\PaymentController;
 */
 
 Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+
     return view('landingpage');
 })->name('home');
 
@@ -34,6 +38,26 @@ Route::post('/login', [
     'login'
 ])->name('login.submit');
 
+Route::get('/forgot-password', [
+    AuthController::class,
+    'showForgotPasswordForm'
+])->middleware('guest')->name('password.request');
+
+Route::post('/forgot-password', [
+    AuthController::class,
+    'sendResetLinkEmail'
+])->middleware('throttle:5,1')->name('password.email');
+
+Route::get('/reset-password/{token}', [
+    AuthController::class,
+    'showResetPasswordForm'
+])->name('password.reset');
+
+Route::post('/reset-password', [
+    AuthController::class,
+    'resetPassword'
+])->middleware('throttle:5,1')->name('password.update');
+
 
 Route::get('/register', function () {
     return view('register');
@@ -50,6 +74,18 @@ Route::post('/logout', [
     'logoutWeb'
 ])->name('logout');
 
+Route::patch('/profile', [
+    AuthController::class,
+    'updateProfile'
+])->middleware('auth')->name('profile.update');
+
+Route::middleware('guest')->group(function () {
+    Route::get('/auth/google/redirect', [AuthController::class, 'googleRedirect'])
+        ->name('auth.google.redirect');
+    Route::get('/auth/google/callback', [AuthController::class, 'googleCallback'])
+        ->name('auth.google.callback');
+});
+
 
 /*
 |--------------------------------------------------------------------------
@@ -65,6 +101,16 @@ Route::get('/dashboard', [
     DashboardController::class,
     'index'
 ])->name('dashboard');
+
+Route::patch('/admin/users/{targetUser}', [
+    DashboardController::class,
+    'updateAdminUser'
+])->name('admin.users.update');
+
+Route::patch('/admin/payments/{payment}', [
+    DashboardController::class,
+    'updateAdminPayment'
+])->name('admin.payments.update');
 
 
 /*
@@ -104,6 +150,11 @@ Route::get('/interviews/by-cv/{cvId}', function ($cvId) {
 Route::post('/generate-interview', [
     InterviewController::class,
     'generate'
+]);
+
+Route::post('/interview/transcribe', [
+    InterviewController::class,
+    'transcribe'
 ]);
 
 
@@ -206,6 +257,8 @@ Route::get('/payment/finish', function () {
 
 
 Route::post('/subscribe', [PaymentController::class, 'subscribe']);
+Route::post('/subscription/confirm', [PaymentController::class, 'confirmSubscription'])
+    ->middleware('auth');
 
 
 /*
@@ -214,7 +267,7 @@ Route::post('/subscribe', [PaymentController::class, 'subscribe']);
 |--------------------------------------------------------------------------
 */
 
-Route::get('/premium/result', [
+Route::get('/premium/result/{payment}', [
     PaymentController::class,
     'showResult'
 ])
